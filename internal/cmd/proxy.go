@@ -134,7 +134,7 @@ var Proxy = &cobra.Command{
 			log.Println(log.LogLevelInfo, "Object Storage Proxy Access Key        : "+opts.AccessKey)
 			log.Println(log.LogLevelInfo, "Object Storage Proxy Secret Key        : "+opts.SecretKey)
 			log.Println(log.LogLevelInfo, "Object Storage Proxy Region            : "+opts.Region)
-			log.Println(log.LogLevelInfo, "Object Storage Proxy Local Style       : "+opts.UpstreamStyle)
+			log.Println(log.LogLevelInfo, "Object Storage Proxy Upstream Style    : "+opts.UpstreamStyle)
 			log.Println(log.LogLevelInfo, "Object Storage Proxy Local Style       : "+opts.LocalStyle)
 		}
 

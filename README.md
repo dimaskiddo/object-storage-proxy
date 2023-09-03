@@ -26,6 +26,7 @@ Optional packages:
 2) Run the following command on your Terminal or PowerShell
 ```sh
 docker run -d \
+  -p 9000:9000 \
   -e OBJECT_STORAGE_PROXY_ENDPOINT="OBJECT_STORAGE_ENDPOINT" \
   -e OBJECT_STORAGE_PROXY_ACCESS_KEY="OBJECT_STORAGE_ACCESS_KEY" \
   -e OBJECT_STORAGE_PROXY_SECRET_KEY="OBJECT_STORAGE_SECRET_KEY" \
