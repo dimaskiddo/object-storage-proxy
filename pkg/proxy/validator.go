@@ -29,7 +29,7 @@ func (h *Handler) validateHeaders(req *http.Request) (string, string, error) {
 	region := match[2]
 
 	if subtle.ConstantTimeCompare([]byte(accessKey), []byte(h.AccessKey)) == 1 {
-		return h.AccessKey, region, nil
+		return accessKey, region, nil
 	}
 
 	return "", "", fmt.Errorf("Invalid Access Key in Credential: %v", req)
