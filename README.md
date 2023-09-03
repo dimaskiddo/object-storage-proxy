@@ -1,6 +1,6 @@
 # Object Storage Reverse Proxy
 
-This repository contains example of implementation [Kriechi/aws-s3-reverse-proxy](https://github.com/Kriechi/aws-s3-reverse-proxy) package with some additional feature like Virtual or Path style access convertion. This example is using a codebase from [dimaskiddo/object-storage-proxy](https://github.com/dimaskiddo/object-storage-proxy).
+This repository contains example of implementation [Kriechi/aws-s3-reverse-proxy](https://github.com/Kriechi/aws-s3-reverse-proxy) package with some additional feature like Virtual or Path style access convertion. This example is using a codebase from [dimaskiddo/codebase-go-cli](https://github.com/dimaskiddo/codebase-go-cli).
 
 ## Getting Started
 
