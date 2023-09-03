@@ -10,16 +10,18 @@ import (
 	"github.com/dimaskiddo/object-storage-proxy/pkg/proxy"
 )
 
-type Options struct {
+type svrOptions struct {
 	ListenAddress string
+	TLSCertFile   string
+	TLSKeyFile    string
 	Scheme        string
 	Endpoint      string
 	AccessKey     string
 	SecretKey     string
 	Region        string
-	Insecure      bool
 	UpstreamStyle string
 	LocalStyle    string
+	Insecure      bool
 	Verbose       bool
 }
 
@@ -30,12 +32,28 @@ var Proxy = &cobra.Command{
 	Long:  "Start Object Storage Proxy",
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
-		var opts Options
+		var opts svrOptions
 		var svc http.Handler
 
 		opts.ListenAddress, err = env.GetEnvString("OBJECT_STORAGE_PROXY_LISTEN_ADDRESS")
 		if err != nil {
 			opts.ListenAddress, err = cmd.Flags().GetString("listen-address")
+			if err != nil {
+				log.Println(log.LogLevelFatal, err.Error())
+			}
+		}
+
+		opts.TLSCertFile, err = env.GetEnvString("OBJECT_STORAGE_PROXY_TLS_CERT_FILE")
+		if err != nil {
+			opts.TLSCertFile, err = cmd.Flags().GetString("tls-cert-file")
+			if err != nil {
+				log.Println(log.LogLevelFatal, err.Error())
+			}
+		}
+
+		opts.TLSKeyFile, err = env.GetEnvString("OBJECT_STORAGE_PROXY_TLS_KEY_FILE")
+		if err != nil {
+			opts.TLSKeyFile, err = cmd.Flags().GetString("tls-key-file")
 			if err != nil {
 				log.Println(log.LogLevelFatal, err.Error())
 			}
@@ -85,14 +103,6 @@ var Proxy = &cobra.Command{
 			}
 		}
 
-		opts.Insecure, err = env.GetEnvBool("OBJECT_STORAGE_PROXY_INSECURE")
-		if err != nil {
-			opts.Insecure, err = cmd.Flags().GetBool("insecure")
-			if err != nil {
-				log.Println(log.LogLevelFatal, err.Error())
-			}
-		}
-
 		opts.UpstreamStyle, err = env.GetEnvString("OBJECT_STORAGE_PROXY_UPSTREAM_STYLE")
 		if err != nil {
 			opts.UpstreamStyle, err = cmd.Flags().GetString("upstream-style")
@@ -104,6 +114,14 @@ var Proxy = &cobra.Command{
 		opts.LocalStyle, err = env.GetEnvString("OBJECT_STORAGE_PROXY_LOCAL_STYLE")
 		if err != nil {
 			opts.LocalStyle, err = cmd.Flags().GetString("local-style")
+			if err != nil {
+				log.Println(log.LogLevelFatal, err.Error())
+			}
+		}
+
+		opts.Insecure, err = env.GetEnvBool("OBJECT_STORAGE_PROXY_INSECURE")
+		if err != nil {
+			opts.Insecure, err = cmd.Flags().GetBool("insecure")
 			if err != nil {
 				log.Println(log.LogLevelFatal, err.Error())
 			}
@@ -138,19 +156,30 @@ var Proxy = &cobra.Command{
 			log.Println(log.LogLevelInfo, "Object Storage Proxy Local Style       : "+opts.LocalStyle)
 		}
 
-		log.Println(log.LogLevelInfo, "Object Storage Proxy is Listening on "+opts.ListenAddress+" with HTTP protocol")
-		http.ListenAndServe(opts.ListenAddress, svc)
+		if len(opts.TLSCertFile) > 0 && len(opts.TLSKeyFile) > 0 {
+			log.Println(log.LogLevelInfo, "Object Storage Proxy is Listening on "+opts.ListenAddress+" with HTTPS protocol")
+			err = http.ListenAndServeTLS(opts.ListenAddress, opts.TLSCertFile, opts.TLSKeyFile, svc)
+		} else {
+			log.Println(log.LogLevelInfo, "Object Storage Proxy is Listening on "+opts.ListenAddress+" with HTTP protocol")
+			err = http.ListenAndServe(opts.ListenAddress, svc)
+		}
+
+		if err != nil {
+			log.Println(log.LogLevelFatal, err.Error())
+		}
 	},
 }
 
 func init() {
+	Proxy.Flags().String("listen-address", "0.0.0.0:9000", "Object Storage Proxy Listen Address (Default to 0.0.0.0:9000)")
+	Proxy.Flags().String("tls-cert-file", "", "Object Storage Proxy Server TLS Certificate File")
+	Proxy.Flags().String("tls-key-file", "", "Object Storage Proxy Server TLS Key File")
 	Proxy.Flags().String("endpoint", "", "Object Storage Endpoint")
 	Proxy.Flags().String("access-key", "", "Object Storage Credentials Access Key")
 	Proxy.Flags().String("secret-key", "", "Object Storage Credentials Secret Key")
 	Proxy.Flags().String("region", "us-east-1", "Object Storage Region (Default to us-east-1)")
-	Proxy.Flags().Bool("insecure", false, "Object Storage Use Insecure Protocol (Default to false)")
 	Proxy.Flags().String("upstream-style", "path", "Object Storage Upstream Access Style 'virtual' or 'path' (Default to path)")
 	Proxy.Flags().String("local-style", "path", "Object Storage Local Access Style 'virtual' or 'path' (Default to path)")
-	Proxy.Flags().String("listen-address", "0.0.0.0:9000", "Object Storage Proxy Listen Address (Default to 0.0.0.0:9000)")
+	Proxy.Flags().Bool("insecure", false, "Object Storage Use Insecure Protocol (Default to false)")
 	Proxy.Flags().Bool("verbose", false, "Activate Verbose Logging (Default to false)")
 }

@@ -5,12 +5,12 @@ import (
 	"net/http/httputil"
 	"strings"
 
-	v4 "github.com/aws/aws-sdk-go/aws/signer/v4"
+	signer_v4 "github.com/aws/aws-sdk-go/aws/signer/v4"
 
 	"github.com/dimaskiddo/object-storage-proxy/pkg/log"
 )
 
-func (h *Handler) objectStorageProxyBuilder(signer *v4.Signer, req *http.Request, region string) (*http.Request, error) {
+func (h *Handler) objectStorageProxyBuilder(signer *signer_v4.Signer, req *http.Request, region string) (*http.Request, error) {
 	proxyURL := *req.URL
 	endpointDomain := h.Endpoint
 
