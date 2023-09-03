@@ -1,10 +1,13 @@
 package proxy
 
 import (
+	"crypto/subtle"
+	"fmt"
 	"net/http"
 	"net/http/httputil"
 	"strings"
 
+	creds "github.com/aws/aws-sdk-go/aws/credentials"
 	signer_v4 "github.com/aws/aws-sdk-go/aws/signer/v4"
 
 	"github.com/dimaskiddo/object-storage-proxy/pkg/log"
@@ -45,6 +48,7 @@ func (h *Handler) objectStorageProxyBuilder(signer *signer_v4.Signer, req *http.
 		}
 
 		endpointDomain = strings.Join(domainSplit, ".")
+
 		if len(proxyURL.Path) > 1 {
 			proxyURL.Path = "/" + bucketName + proxyURL.Path
 		} else {
@@ -78,14 +82,42 @@ func (h *Handler) objectStorageProxyBuilder(signer *signer_v4.Signer, req *http.
 }
 
 func (h *Handler) objectStorageProxyRequest(req *http.Request) (*http.Request, error) {
-	signer := h.Signer
+	accessKey, region, err := h.validateHeaders(req)
+	if err != nil {
+		return nil, err
+	}
+
+	signer := signer_v4.NewSigner(creds.NewStaticCredentialsFromCreds(creds.Value{
+		AccessKeyID:     accessKey,
+		SecretAccessKey: h.SecretKey,
+	}))
+
+	fakeReq, err := h.fakeIncomingRequest(signer, req, region)
+	if err != nil {
+		return nil, err
+	}
+
+	compareAuthorization := subtle.ConstantTimeCompare([]byte(fakeReq.Header["Authorization"][0]), []byte(req.Header["Authorization"][0]))
+	if compareAuthorization == 0 {
+		fakeDumpReq, _ := httputil.DumpRequest(fakeReq, false)
+		log.Println(log.LogLevelError, "Fake Dump Request: "+string(fakeDumpReq))
+
+		intialDumpReq, _ := httputil.DumpRequest(req, false)
+		log.Println(log.LogLevelError, "Initial Dump Request: "+string(intialDumpReq))
+
+		return nil, fmt.Errorf("Invalid Signature in Authorization Header")
+	}
 
 	if h.Verbose {
 		intialDumpReq, _ := httputil.DumpRequest(req, false)
 		log.Println(log.LogLevelDebug, "Initial Dump Request: "+string(intialDumpReq))
 	}
 
-	proxyReq, err := h.objectStorageProxyBuilder(signer, req, h.Region)
+	if h.Region != "" {
+		region = h.Region
+	}
+
+	proxyReq, err := h.objectStorageProxyBuilder(signer, req, region)
 	if err != nil {
 		return nil, err
 	}

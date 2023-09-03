@@ -5,9 +5,6 @@ import (
 	"net/http/httputil"
 	"net/url"
 
-	creds "github.com/aws/aws-sdk-go/aws/credentials"
-	signer_v4 "github.com/aws/aws-sdk-go/aws/signer/v4"
-
 	"github.com/dimaskiddo/object-storage-proxy/pkg/log"
 )
 
@@ -20,16 +17,10 @@ type Handler struct {
 	UpstreamStyle string
 	LocalStyle    string
 	Verbose       bool
-	Signer        *signer_v4.Signer
 	Proxy         *httputil.ReverseProxy
 }
 
 func NewObjectStorageProxy(scheme string, endpoint string, accessKey string, secretKey string, region string, upstreamStyle string, localStyle string, verbose bool) (*Handler, error) {
-	signer := signer_v4.NewSigner(creds.NewStaticCredentialsFromCreds(creds.Value{
-		AccessKeyID:     accessKey,
-		SecretAccessKey: secretKey,
-	}))
-
 	handler := &Handler{
 		Scheme:        scheme,
 		Endpoint:      endpoint,
@@ -39,7 +30,6 @@ func NewObjectStorageProxy(scheme string, endpoint string, accessKey string, sec
 		UpstreamStyle: upstreamStyle,
 		LocalStyle:    localStyle,
 		Verbose:       verbose,
-		Signer:        signer,
 	}
 
 	return handler, nil
