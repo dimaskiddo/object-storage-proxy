@@ -17,7 +17,6 @@ type Handler struct {
 	UpstreamStyle string
 	LocalStyle    string
 	Verbose       bool
-	Proxy         *httputil.ReverseProxy
 }
 
 func NewObjectStorageProxy(scheme string, endpoint string, accessKey string, secretKey string, region string, upstreamStyle string, localStyle string, verbose bool) (*Handler, error) {
@@ -50,10 +49,10 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	defer proxyReq.Body.Close()
 
-	url := url.URL{Scheme: proxyReq.URL.Scheme, Host: proxyReq.Host}
+	proxyURL := url.URL{Scheme: proxyReq.URL.Scheme, Host: proxyReq.Host}
 
-	proxy := httputil.NewSingleHostReverseProxy(&url)
-	proxy.FlushInterval = 1
+	proxyReverse := httputil.NewSingleHostReverseProxy(&proxyURL)
+	proxyReverse.FlushInterval = 1
 
-	proxy.ServeHTTP(w, proxyReq)
+	proxyReverse.ServeHTTP(w, proxyReq)
 }
