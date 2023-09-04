@@ -9,7 +9,7 @@ import (
 
 var awsAuthCredential = regexp.MustCompile("Credential=([a-zA-Z0-9]+)/[0-9]+/([^/]+-?[0-9]+?)/s3/aws4_request")
 
-func (h *Handler) validateHeaders(req *http.Request) (string, string, error) {
+func (osp *ObjectStorageProxy) validateHeaders(req *http.Request) (string, string, error) {
 	headerAmzDate := req.Header["X-Amz-Date"]
 	if len(headerAmzDate) != 1 {
 		return "", "", fmt.Errorf("X-Amz-Date Header is Missing or Set Multiple Times: %v", req)
@@ -28,7 +28,7 @@ func (h *Handler) validateHeaders(req *http.Request) (string, string, error) {
 	accessKey := match[1]
 	region := match[2]
 
-	if subtle.ConstantTimeCompare([]byte(accessKey), []byte(h.AccessKey)) == 1 {
+	if subtle.ConstantTimeCompare([]byte(accessKey), []byte(osp.AccessKey)) == 1 {
 		return accessKey, region, nil
 	}
 

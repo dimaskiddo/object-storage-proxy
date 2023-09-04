@@ -11,7 +11,7 @@ import (
 
 var awsAuthSignedHeader = regexp.MustCompile("SignedHeaders=([a-zA-Z0-9;-]+)")
 
-func (h *Handler) fakeIncomingRequest(signer *signer_v4.Signer, req *http.Request, region string) (*http.Request, error) {
+func (osp *ObjectStorageProxy) fakeIncomingRequest(signer *signer_v4.Signer, req *http.Request, region string) (*http.Request, error) {
 	fakeReq, err := http.NewRequest(req.Method, req.URL.String(), nil)
 	if err != nil {
 		return nil, err
@@ -31,7 +31,7 @@ func (h *Handler) fakeIncomingRequest(signer *signer_v4.Signer, req *http.Reques
 		return nil, fmt.Errorf("error parsing X-Amz-Date %v - %v", req.Header["X-Amz-Date"][0], err)
 	}
 
-	if err := h.signWithTime(signer, fakeReq, region, signTime); err != nil {
+	if err := osp.signWithTime(signer, fakeReq, region, signTime); err != nil {
 		return nil, err
 	}
 

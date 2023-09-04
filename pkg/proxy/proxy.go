@@ -8,7 +8,7 @@ import (
 	"github.com/dimaskiddo/object-storage-proxy/pkg/log"
 )
 
-type Handler struct {
+type ObjectStorageProxy struct {
 	Scheme        string
 	Endpoint      string
 	AccessKey     string
@@ -19,29 +19,29 @@ type Handler struct {
 	Verbose       bool
 }
 
-func NewObjectStorageProxy(scheme string, endpoint string, accessKey string, secretKey string, region string, upstreamStyle string, localStyle string, verbose bool) (*Handler, error) {
-	handler := &Handler{
-		Scheme:        scheme,
-		Endpoint:      endpoint,
-		AccessKey:     accessKey,
-		SecretKey:     secretKey,
-		Region:        region,
-		UpstreamStyle: upstreamStyle,
-		LocalStyle:    localStyle,
-		Verbose:       verbose,
+func NewObjectStorageProxy(osp ObjectStorageProxy) (*ObjectStorageProxy, error) {
+	objectStorageProxy := &ObjectStorageProxy{
+		Scheme:        osp.Scheme,
+		Endpoint:      osp.Endpoint,
+		AccessKey:     osp.AccessKey,
+		SecretKey:     osp.SecretKey,
+		Region:        osp.Region,
+		UpstreamStyle: osp.UpstreamStyle,
+		LocalStyle:    osp.LocalStyle,
+		Verbose:       osp.Verbose,
 	}
 
-	return handler, nil
+	return objectStorageProxy, nil
 }
 
-func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	proxyReq, err := h.objectStorageProxyRequest(r)
+func (osp *ObjectStorageProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	proxyReq, err := osp.objectStorageProxyRequest(r)
 
 	if err != nil {
 		log.Println(log.LogLevelError, "Unable to Proxy Object Storage Request")
 		w.WriteHeader(http.StatusBadRequest)
 
-		if h.Verbose {
+		if osp.Verbose {
 			w.Write([]byte(err.Error()))
 		}
 

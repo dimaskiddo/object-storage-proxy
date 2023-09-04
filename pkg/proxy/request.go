@@ -13,12 +13,12 @@ import (
 	"github.com/dimaskiddo/object-storage-proxy/pkg/log"
 )
 
-func (h *Handler) objectStorageProxyBuilder(signer *signer_v4.Signer, req *http.Request, region string) (*http.Request, error) {
+func (osp *ObjectStorageProxy) objectStorageProxyBuilder(signer *signer_v4.Signer, req *http.Request, region string) (*http.Request, error) {
 	proxyURL := *req.URL
-	endpointDomain := h.Endpoint
+	endpointDomain := osp.Endpoint
 
 	switch {
-	case h.UpstreamStyle == "virtual" && h.LocalStyle == "path":
+	case osp.UpstreamStyle == "virtual" && osp.LocalStyle == "path":
 		bucketName := ""
 
 		urlSplit := strings.Split(req.URL.EscapedPath(), "/")
@@ -38,7 +38,7 @@ func (h *Handler) objectStorageProxyBuilder(signer *signer_v4.Signer, req *http.
 
 		proxyURL.Path = strings.Join(urlSplit, "/")
 
-	case h.UpstreamStyle == "path" && h.LocalStyle == "virtual":
+	case osp.UpstreamStyle == "path" && osp.LocalStyle == "virtual":
 		bucketName := ""
 
 		domainSplit := strings.Split(req.Host, ".")
@@ -56,7 +56,7 @@ func (h *Handler) objectStorageProxyBuilder(signer *signer_v4.Signer, req *http.
 		}
 	}
 
-	proxyURL.Scheme = h.Scheme
+	proxyURL.Scheme = osp.Scheme
 	proxyURL.Host = endpointDomain
 	proxyURL.RawPath = req.URL.Path
 
@@ -73,7 +73,7 @@ func (h *Handler) objectStorageProxyBuilder(signer *signer_v4.Signer, req *http.
 		proxyReq.Header["Content-Md5"] = headerValue
 	}
 
-	if err := h.sign(signer, proxyReq, region); err != nil {
+	if err := osp.sign(signer, proxyReq, region); err != nil {
 		return nil, err
 	}
 
@@ -81,18 +81,18 @@ func (h *Handler) objectStorageProxyBuilder(signer *signer_v4.Signer, req *http.
 	return proxyReq, nil
 }
 
-func (h *Handler) objectStorageProxyRequest(req *http.Request) (*http.Request, error) {
-	accessKey, region, err := h.validateHeaders(req)
+func (osp *ObjectStorageProxy) objectStorageProxyRequest(req *http.Request) (*http.Request, error) {
+	accessKey, region, err := osp.validateHeaders(req)
 	if err != nil {
 		return nil, err
 	}
 
 	signer := signer_v4.NewSigner(creds.NewStaticCredentialsFromCreds(creds.Value{
 		AccessKeyID:     accessKey,
-		SecretAccessKey: h.SecretKey,
+		SecretAccessKey: osp.SecretKey,
 	}))
 
-	fakeReq, err := h.fakeIncomingRequest(signer, req, region)
+	fakeReq, err := osp.fakeIncomingRequest(signer, req, region)
 	if err != nil {
 		return nil, err
 	}
@@ -108,23 +108,23 @@ func (h *Handler) objectStorageProxyRequest(req *http.Request) (*http.Request, e
 		return nil, fmt.Errorf("Invalid Signature in Authorization Header")
 	}
 
-	if h.Verbose {
+	if osp.Verbose {
 		intialDumpReq, _ := httputil.DumpRequest(req, false)
 		log.Println(log.LogLevelDebug, "Initial Dump Request: "+string(intialDumpReq))
 	}
 
-	if h.Region != "" {
-		region = h.Region
+	if osp.Region != "" {
+		region = osp.Region
 	}
 
-	proxyReq, err := h.objectStorageProxyBuilder(signer, req, region)
+	proxyReq, err := osp.objectStorageProxyBuilder(signer, req, region)
 	if err != nil {
 		return nil, err
 	}
 
 	proxyReq.ContentLength = req.ContentLength
 
-	if h.Verbose {
+	if osp.Verbose {
 		proxyDumpReq, _ := httputil.DumpRequest(proxyReq, false)
 		log.Println(log.LogLevelDebug, "Proxy Dump Request: "+string(proxyDumpReq))
 	}
