@@ -7,7 +7,6 @@ import (
 	"net/http/httputil"
 	"strings"
 
-	creds "github.com/aws/aws-sdk-go/aws/credentials"
 	signer_v4 "github.com/aws/aws-sdk-go/aws/signer/v4"
 
 	"github.com/dimaskiddo/object-storage-proxy/pkg/log"
@@ -82,30 +81,37 @@ func (osp *ObjectStorageProxy) objectStorageProxyBuilder(signer *signer_v4.Signe
 }
 
 func (osp *ObjectStorageProxy) objectStorageProxyRequest(req *http.Request) (*http.Request, error) {
-	accessKey, region, err := osp.validateHeaders(req)
-	if err != nil {
-		return nil, err
-	}
+	var accessKey, region string
+	var signer *signer_v4.Signer
 
-	signer := signer_v4.NewSigner(creds.NewStaticCredentialsFromCreds(creds.Value{
-		AccessKeyID:     accessKey,
-		SecretAccessKey: osp.SecretKey,
-	}))
+	if !osp.IsPublic {
+		accessKey, region, err := osp.validateHeaders(req)
+		if err != nil {
+			return nil, err
+		}
 
-	fakeReq, err := osp.fakeIncomingRequest(signer, req, region)
-	if err != nil {
-		return nil, err
-	}
+		signer = osp.generateSigner(accessKey, osp.SecretKey)
 
-	compareAuthorization := subtle.ConstantTimeCompare([]byte(fakeReq.Header["Authorization"][0]), []byte(req.Header["Authorization"][0]))
-	if compareAuthorization == 0 {
-		fakeDumpReq, _ := httputil.DumpRequest(fakeReq, false)
-		log.Println(log.LogLevelError, "Fake Dump Request: "+string(fakeDumpReq))
+		fakeReq, err := osp.fakeIncomingRequest(signer, req, region)
+		if err != nil {
+			return nil, err
+		}
 
-		intialDumpReq, _ := httputil.DumpRequest(req, false)
-		log.Println(log.LogLevelError, "Initial Dump Request: "+string(intialDumpReq))
+		compareAuthorization := subtle.ConstantTimeCompare([]byte(fakeReq.Header["Authorization"][0]), []byte(req.Header["Authorization"][0]))
+		if compareAuthorization == 0 {
+			fakeDumpReq, _ := httputil.DumpRequest(fakeReq, false)
+			log.Println(log.LogLevelError, "Fake Dump Request: "+string(fakeDumpReq))
 
-		return nil, fmt.Errorf("Invalid Signature in Authorization Header")
+			intialDumpReq, _ := httputil.DumpRequest(req, false)
+			log.Println(log.LogLevelError, "Initial Dump Request: "+string(intialDumpReq))
+
+			return nil, fmt.Errorf("Invalid Signature in Authorization Header")
+		}
+	} else {
+		accessKey = osp.AccessKey
+		region = osp.Region
+
+		signer = osp.generateSigner(accessKey, osp.SecretKey)
 	}
 
 	if osp.Verbose {

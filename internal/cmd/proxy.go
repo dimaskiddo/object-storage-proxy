@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/spf13/cobra"
 
@@ -14,7 +15,6 @@ type ServerOptions struct {
 	ListenAddress string
 	TLSCertFile   string
 	TLSKeyFile    string
-	Insecure      bool
 }
 
 // Proxy Variable Structure
@@ -113,11 +113,24 @@ var Proxy = &cobra.Command{
 			}
 		}
 
-		svrOpts.Insecure, err = env.GetEnvBool("OBJECT_STORAGE_PROXY_INSECURE")
+		ospOpts.IsPublic, err = env.GetEnvBool("OBJECT_STORAGE_PROXY_IS_BUCKET_PUBLIC")
 		if err != nil {
-			svrOpts.Insecure, err = cmd.Flags().GetBool("insecure")
+			ospOpts.IsPublic, err = cmd.Flags().GetBool("bucket-is-public")
 			if err != nil {
 				log.Println(log.LogLevelFatal, err.Error())
+			}
+		}
+
+		ospOpts.Insecure, err = env.GetEnvBool("OBJECT_STORAGE_PROXY_INSECURE")
+		if err != nil {
+			ospOpts.Insecure, err = cmd.Flags().GetBool("insecure")
+			if err != nil {
+				log.Println(log.LogLevelFatal, err.Error())
+			}
+
+			ospOpts.Scheme = "https"
+			if ospOpts.Insecure {
+				ospOpts.Scheme = "http"
 			}
 		}
 
@@ -127,11 +140,6 @@ var Proxy = &cobra.Command{
 			if err != nil {
 				log.Println(log.LogLevelFatal, err.Error())
 			}
-		}
-
-		ospOpts.Scheme = "https"
-		if svrOpts.Insecure {
-			ospOpts.Scheme = "http"
 		}
 
 		osp, err = proxy.NewObjectStorageProxy(ospOpts)
@@ -148,6 +156,7 @@ var Proxy = &cobra.Command{
 			log.Println(log.LogLevelInfo, "Object Storage Proxy Region            : "+ospOpts.Region)
 			log.Println(log.LogLevelInfo, "Object Storage Proxy Upstream Style    : "+ospOpts.UpstreamStyle)
 			log.Println(log.LogLevelInfo, "Object Storage Proxy Local Style       : "+ospOpts.LocalStyle)
+			log.Println(log.LogLevelInfo, "Object Storage Proxy Bucket is Public  : "+strconv.FormatBool(ospOpts.IsPublic))
 		}
 
 		if len(svrOpts.TLSCertFile) > 0 && len(svrOpts.TLSKeyFile) > 0 {
@@ -174,6 +183,7 @@ func init() {
 	Proxy.Flags().String("region", "us-east-1", "Object Storage Region (Default to us-east-1)")
 	Proxy.Flags().String("upstream-style", "path", "Object Storage Upstream Access Style 'virtual' or 'path' (Default to path)")
 	Proxy.Flags().String("local-style", "path", "Object Storage Local Access Style 'virtual' or 'path' (Default to path)")
+	Proxy.Flags().Bool("bucket-is-public", false, "Object Storage Bucket is Public (Default to false)")
 	Proxy.Flags().Bool("insecure", false, "Object Storage Use Insecure Protocol (Default to false)")
 	Proxy.Flags().Bool("verbose", false, "Activate Verbose Logging (Default to false)")
 }

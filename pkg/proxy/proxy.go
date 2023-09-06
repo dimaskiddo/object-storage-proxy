@@ -16,6 +16,8 @@ type ObjectStorageProxy struct {
 	Region        string
 	UpstreamStyle string
 	LocalStyle    string
+	IsPublic      bool
+	Insecure      bool
 	Verbose       bool
 }
 
@@ -28,6 +30,8 @@ func NewObjectStorageProxy(osp ObjectStorageProxy) (*ObjectStorageProxy, error) 
 		Region:        osp.Region,
 		UpstreamStyle: osp.UpstreamStyle,
 		LocalStyle:    osp.LocalStyle,
+		IsPublic:      osp.IsPublic,
+		Insecure:      osp.Insecure,
 		Verbose:       osp.Verbose,
 	}
 

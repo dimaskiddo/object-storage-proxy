@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	creds "github.com/aws/aws-sdk-go/aws/credentials"
 	signer_v4 "github.com/aws/aws-sdk-go/aws/signer/v4"
 )
 
@@ -27,4 +28,11 @@ func (osp *ObjectStorageProxy) signWithTime(signer *signer_v4.Signer, req *http.
 
 	_, err := signer.Sign(req, body, "s3", region, signTime)
 	return err
+}
+
+func (osp *ObjectStorageProxy) generateSigner(accessKey string, secretKey string) *signer_v4.Signer {
+	return signer_v4.NewSigner(creds.NewStaticCredentialsFromCreds(creds.Value{
+		AccessKeyID:     accessKey,
+		SecretAccessKey: secretKey,
+	}))
 }
