@@ -113,7 +113,7 @@ var Proxy = &cobra.Command{
 			}
 		}
 
-		ospOpts.IsPublic, err = env.GetEnvBool("OBJECT_STORAGE_PROXY_IS_BUCKET_PUBLIC")
+		ospOpts.IsPublic, err = env.GetEnvBool("OBJECT_STORAGE_PROXY_BUCKET_IS_PUBLIC")
 		if err != nil {
 			ospOpts.IsPublic, err = cmd.Flags().GetBool("bucket-is-public")
 			if err != nil {
