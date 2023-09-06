@@ -7,12 +7,10 @@ import (
 	"net/http/httputil"
 	"strings"
 
-	signer_v4 "github.com/aws/aws-sdk-go/aws/signer/v4"
-
 	"github.com/dimaskiddo/object-storage-proxy/pkg/log"
 )
 
-func (osp *ObjectStorageProxy) objectStorageProxyBuilder(signer *signer_v4.Signer, req *http.Request, region string) (*http.Request, error) {
+func (osp *ObjectStorageProxy) objectStorageProxyBuilder(req *http.Request, accessKey string, region string) (*http.Request, error) {
 	proxyURL := *req.URL
 	endpointDomain := osp.Endpoint
 
@@ -72,8 +70,10 @@ func (osp *ObjectStorageProxy) objectStorageProxyBuilder(signer *signer_v4.Signe
 		proxyReq.Header["Content-Md5"] = headerValue
 	}
 
-	if err := osp.sign(signer, proxyReq, region); err != nil {
-		return nil, err
+	if !osp.IsPublic {
+		if err := osp.sign(osp.signer(accessKey, osp.SecretKey), proxyReq, region); err != nil {
+			return nil, err
+		}
 	}
 
 	copyHeaderData(req.Header, proxyReq.Header)
@@ -82,7 +82,6 @@ func (osp *ObjectStorageProxy) objectStorageProxyBuilder(signer *signer_v4.Signe
 
 func (osp *ObjectStorageProxy) objectStorageProxyRequest(req *http.Request) (*http.Request, error) {
 	var accessKey, region string
-	var signer *signer_v4.Signer
 
 	if !osp.IsPublic {
 		accessKey, region, err := osp.validateHeaders(req)
@@ -90,9 +89,7 @@ func (osp *ObjectStorageProxy) objectStorageProxyRequest(req *http.Request) (*ht
 			return nil, err
 		}
 
-		signer = osp.generateSigner(accessKey, osp.SecretKey)
-
-		fakeReq, err := osp.fakeIncomingRequest(signer, req, region)
+		fakeReq, err := osp.fakeIncomingRequest(req, accessKey, region)
 		if err != nil {
 			return nil, err
 		}
@@ -107,11 +104,10 @@ func (osp *ObjectStorageProxy) objectStorageProxyRequest(req *http.Request) (*ht
 
 			return nil, fmt.Errorf("Invalid Signature in Authorization Header")
 		}
-	} else {
-		accessKey = osp.AccessKey
-		region = osp.Region
+	}
 
-		signer = osp.generateSigner(accessKey, osp.SecretKey)
+	if osp.Region != "" {
+		region = osp.Region
 	}
 
 	if osp.Verbose {
@@ -119,11 +115,7 @@ func (osp *ObjectStorageProxy) objectStorageProxyRequest(req *http.Request) (*ht
 		log.Println(log.LogLevelDebug, "Initial Dump Request: "+string(intialDumpReq))
 	}
 
-	if osp.Region != "" {
-		region = osp.Region
-	}
-
-	proxyReq, err := osp.objectStorageProxyBuilder(signer, req, region)
+	proxyReq, err := osp.objectStorageProxyBuilder(req, accessKey, region)
 	if err != nil {
 		return nil, err
 	}

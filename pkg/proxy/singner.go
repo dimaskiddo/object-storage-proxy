@@ -30,7 +30,7 @@ func (osp *ObjectStorageProxy) signWithTime(signer *signer_v4.Signer, req *http.
 	return err
 }
 
-func (osp *ObjectStorageProxy) generateSigner(accessKey string, secretKey string) *signer_v4.Signer {
+func (osp *ObjectStorageProxy) signer(accessKey string, secretKey string) *signer_v4.Signer {
 	return signer_v4.NewSigner(creds.NewStaticCredentialsFromCreds(creds.Value{
 		AccessKeyID:     accessKey,
 		SecretAccessKey: secretKey,
