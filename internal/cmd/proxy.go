@@ -53,6 +53,14 @@ var Proxy = &cobra.Command{
 			}
 		}
 
+		ospOpts.IsPublic, err = env.GetEnvBool("OBJECT_STORAGE_PROXY_BUCKET_IS_PUBLIC")
+		if err != nil {
+			ospOpts.IsPublic, err = cmd.Flags().GetBool("bucket-is-public")
+			if err != nil {
+				log.Println(log.LogLevelFatal, err.Error())
+			}
+		}
+
 		ospOpts.Endpoint, err = env.GetEnvString("OBJECT_STORAGE_PROXY_ENDPOINT")
 		if err != nil {
 			ospOpts.Endpoint, err = cmd.Flags().GetString("endpoint")
@@ -108,14 +116,6 @@ var Proxy = &cobra.Command{
 		ospOpts.LocalStyle, err = env.GetEnvString("OBJECT_STORAGE_PROXY_LOCAL_STYLE")
 		if err != nil {
 			ospOpts.LocalStyle, err = cmd.Flags().GetString("local-style")
-			if err != nil {
-				log.Println(log.LogLevelFatal, err.Error())
-			}
-		}
-
-		ospOpts.IsPublic, err = env.GetEnvBool("OBJECT_STORAGE_PROXY_BUCKET_IS_PUBLIC")
-		if err != nil {
-			ospOpts.IsPublic, err = cmd.Flags().GetBool("bucket-is-public")
 			if err != nil {
 				log.Println(log.LogLevelFatal, err.Error())
 			}

@@ -7,10 +7,12 @@ import (
 	"net/http/httputil"
 	"strings"
 
+	signer_v4 "github.com/aws/aws-sdk-go/aws/signer/v4"
+
 	"github.com/dimaskiddo/object-storage-proxy/pkg/log"
 )
 
-func (osp *ObjectStorageProxy) objectStorageProxyBuilder(req *http.Request, accessKey string, region string) (*http.Request, error) {
+func (osp *ObjectStorageProxy) objectStorageProxyBuilder(req *http.Request, signer *signer_v4.Signer, region string) (*http.Request, error) {
 	proxyURL := *req.URL
 	endpointDomain := osp.Endpoint
 
@@ -71,7 +73,7 @@ func (osp *ObjectStorageProxy) objectStorageProxyBuilder(req *http.Request, acce
 	}
 
 	if !osp.IsPublic {
-		if err := osp.sign(osp.signer(accessKey, osp.SecretKey), proxyReq, region); err != nil {
+		if err := osp.sign(proxyReq, signer, region); err != nil {
 			return nil, err
 		}
 	}
@@ -81,15 +83,15 @@ func (osp *ObjectStorageProxy) objectStorageProxyBuilder(req *http.Request, acce
 }
 
 func (osp *ObjectStorageProxy) objectStorageProxyRequest(req *http.Request) (*http.Request, error) {
-	var accessKey, region string
+	var region string
 
 	if !osp.IsPublic {
-		accessKey, region, err := osp.validateHeaders(req)
+		region, err := osp.validateHeaders(req)
 		if err != nil {
 			return nil, err
 		}
 
-		fakeReq, err := osp.fakeIncomingRequest(req, accessKey, region)
+		fakeReq, err := osp.fakeIncomingRequest(req, osp.Signer, region)
 		if err != nil {
 			return nil, err
 		}
@@ -115,7 +117,7 @@ func (osp *ObjectStorageProxy) objectStorageProxyRequest(req *http.Request) (*ht
 		log.Println(log.LogLevelDebug, "Initial Dump Request: "+string(intialDumpReq))
 	}
 
-	proxyReq, err := osp.objectStorageProxyBuilder(req, accessKey, region)
+	proxyReq, err := osp.objectStorageProxyBuilder(req, osp.Signer, region)
 	if err != nil {
 		return nil, err
 	}
