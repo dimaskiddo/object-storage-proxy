@@ -71,7 +71,7 @@ var Proxy = &cobra.Command{
 			if err != nil {
 				log.Println(log.LogLevelFatal, err.Error())
 			} else {
-				if ospOpts.AccessKey == "" {
+				if ospOpts.AccessKey == "" && !ospOpts.IsPublic {
 					log.Println(log.LogLevelFatal, "Object Storage Access Key is Required!")
 				}
 			}
@@ -83,7 +83,7 @@ var Proxy = &cobra.Command{
 			if err != nil {
 				log.Println(log.LogLevelFatal, err.Error())
 			} else {
-				if ospOpts.SecretKey == "" {
+				if ospOpts.SecretKey == "" && !ospOpts.IsPublic {
 					log.Println(log.LogLevelFatal, "Object Storage Secret Key is Required!")
 				}
 			}
